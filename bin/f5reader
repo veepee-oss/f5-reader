@@ -1,0 +1,35 @@
+#! /usr/bin/env python3
+# coding: utf-8
+
+
+import argparse
+import f5reader
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description='F5 BigIP configuration reader')
+
+    parser.add_argument('--version', dest='version', action='store_const',
+                        const=True, default=False,
+                        help='show script version')
+    parser.add_argument('-c', '--config', dest='cfg_file',
+                        help='specify a configuration file to read')
+    parser.add_argument('--csv', dest='csv', action='store_const',
+                        const=True, default=False,
+                        help='output virtual servers info as csv')
+
+    args = parser.parse_args()
+
+    if args.version:
+        print("Script version: %s" % f5reader.VERSION)
+        exit()
+
+    if not args.cfg_file:
+        parser.error('configuration file not provided')
+        exit()
+
+    f5cfg = f5reader.F5Cfg(args.cfg_file)
+
+    if args.csv:
+        f5cfg.output_csv()

@@ -1,0 +1,8 @@
+f5reader - F5 Big-IP configuration reader
+=========================================
+
+Contact: Denis 'jawa' Pompilio <dpompilio@vente-privee.com>
+Sources: https://git.vpgrp.io/core/f5-reader
+
+=== v0.1.0 2018/01/16 ===
+* Initial release of f5reader

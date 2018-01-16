@@ -3,7 +3,7 @@ from distutils.core import setup
 
 if __name__ == '__main__':
     readme_file = os.path.join(os.path.dirname(__file__), 'README.rst')
-    release = "0.1.0"
+    release = "0.1.1"
     setup(
         name="f5reader",
         version=release,

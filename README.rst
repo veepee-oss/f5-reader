@@ -16,6 +16,12 @@ Install `f5reader` module from sources::
 Usage
 -----
 
+Save F5 configuration as file::
+
+    F5:~# tmsh save sys config file /tmp/test.conf
+
+    ~# ssh f5-ip 'tmsh save sys config file /tmp/test.conf && cat /tmp/test.conf && /tmp/test.conf'
+
 From the command line::
 
     ~$ f5reader --help

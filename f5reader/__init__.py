@@ -156,6 +156,14 @@ class F5CfgParser(object):
         self.config_fd = open(config_filename)
         self.parse()
 
+    def _check_quotes(self, line, open_quote=0):
+        """Count quote on line and return open quote blocks count
+        """
+        for char in line:
+            if char == '"':
+                open_quote = (open_quote + 1) % 2
+        return open_quote
+
     @staticmethod
     def build_hierarchy(struct, fields):
         """Build dict hierarchy from fields list
@@ -179,7 +187,7 @@ class F5CfgParser(object):
     def get_rule_block(self):
         """Get configuration irule block as text
 
-        :return: IRule block text as :class:`dict`
+        :return: IRule block text as :func:`str`
         """
         open_block = 1
         text = ""
@@ -194,6 +202,19 @@ class F5CfgParser(object):
             text += line
         raise SyntaxError('text block does not end with "}"')
 
+    def get_text_field(self, text):
+        """Get configuration text field content
+
+        :return: Text field value as :func:`str`
+        """
+        open_quote = self._check_quotes(text)
+        for line in self.config_fd:
+            open_quote = self._check_quotes(line, open_quote)
+            text += line
+            if '"' in line and open_quote == 0:
+                return text.strip()
+        raise SyntaxError('unterminated text field')
+
     def parse_blocks(self):
         """Get configuration instruction from a single block
 
@@ -202,11 +223,6 @@ class F5CfgParser(object):
         struct = {}
         for line in self.config_fd:
             line = line.strip()
-
-            # painful to handle multi-line quotes at the moment
-            if line == 'sys global-settings {':
-                self.skip_block()
-                continue
 
             if line == '{':
                 # this block is a list of entries, convert struct to list
@@ -231,6 +247,8 @@ class F5CfgParser(object):
                 fields = line.split(None, 1)
                 if len(fields) == 1:
                     fields.append(None)
+                elif '"' in fields[1]:
+                    fields[1] = self.get_text_field(fields[1])
                 struct[fields[0]] = fields[1]
 
         return struct

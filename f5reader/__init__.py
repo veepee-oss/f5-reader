@@ -1,6 +1,24 @@
 # coding: utf-8
 
+import re
+
+
 VERSION = "0.1.1"
+
+NODE_PATTERN = r'((?:/([^/]+)/)?([^%:]+)(%[0-9]+)?)(?::([0-9]+))?'
+NODE_RE = re.compile(NODE_PATTERN)
+
+
+def node_info(node_string):
+    """Extract node info from node string
+
+    Node string is under the form:
+        [/partition/]addr[%iface][:port]
+
+    :arg str node_string: Node string
+    :return: Node info as :class:`tuple` (name, partition, address, iface, port)
+    """
+    return NODE_RE.match(node_string).groups()
 
 
 class F5Cfg(object):
@@ -49,6 +67,19 @@ class F5Cfg(object):
         """
         return self.cfg.get('ltm', {}).get('pool', {})
 
+    def get_pools_by_node(self, node_name):
+        """Get pools data by node name
+
+        :return: Pools data as :func:`list` of :class:`dict`
+        """
+        pools = []
+        for pool, data in self.pools.items():
+            for member in data.get('members', {}):
+                if node_name == node_info(member)[0]:
+                    pools.append(pool)
+                    break
+        return pools
+
     def get_node(self, node_name):
         """Get node by name
 
@@ -65,15 +96,7 @@ class F5Cfg(object):
         """
         return self.ssl_profiles.get(profile_name)
 
-    def get_virtual_server(self, vs_name):
-        """Get virtual server by name
-
-        :arg str vs_name: Virtual server name
-        :return: Virtual server data as :class:`dict` or :obj:`None`
-        """
-        return self.virtual_servers.get(vs_name)
-
-    def get_virtual_server_ssl_profile(self, vs_name):
+    def get_ssl_profile_by_virtual_server(self, vs_name):
         """Get SSL profile by virtual server name
 
         :arg str vs_name: Virtual server name
@@ -88,6 +111,27 @@ class F5Cfg(object):
                 profile_name = profile
                 break
         return profile_name, ssl_profile
+
+    def get_virtual_server(self, vs_name):
+        """Get virtual server by name
+
+        :arg str vs_name: Virtual server name
+        :return: Virtual server data as :class:`dict` or :obj:`None`
+        """
+        return self.virtual_servers.get(vs_name)
+
+    def get_virtual_servers_by_node(self, node_name):
+        """Get virtual servers by node name
+
+        :arg str node_name: Node name
+        :return: Virtual servers data as [:class:`dict`,...] or :obj:`None`
+        """
+        virtual_servers = []
+        pools = self.get_pools_by_node(node_name)
+        for vserver, data in self.virtual_servers.items():
+            if data.get('pool') in pools:
+                virtual_servers.append(vserver)
+        return virtual_servers
 
     def get_pool(self, pool_name):
         """Get pool by name
@@ -105,12 +149,8 @@ class F5Cfg(object):
         """
         members = []
         for member in self.get_pool(pool_name)['members']:
-            node_name, port = member.split(':')
-            node = self.get_node(node_name)
-            partition = None
-            if '/' in node_name:
-                partition = node_name.split('/')[1]
-            address = node['address'].split('%')[0]
+            (_, partition, address, _, port) = node_info(member)
+            node = self.get_node(member.split(':')[0])
             description = node.get('description', '')
             members.append((partition, address, port, description))
         return members
@@ -120,11 +160,7 @@ class F5Cfg(object):
         """
         print("Product name;VIP name;VIP;Port;SSL profile;Pool name;Nodes")
         for vserver, data in self.virtual_servers.items():
-            target = data['destination'].split('/')[2]
-            vip, port = target.split(':', 1)
-            if '%' in vip:
-                vip = vip[:-2]
-
+            (_, partition, vip, _, port) = node_info(data['destination'])
             pool_name = ""
             pool_members = []
             if 'pool' in data:
@@ -134,7 +170,7 @@ class F5Cfg(object):
             pool_info = ', '.join(['%s:%s (%s)' % (ent[1], ent[2], ent[3])
                                    for ent in pool_members])
 
-            ssl_profile = self.get_virtual_server_ssl_profile(vserver)[0]
+            ssl_profile = self.get_ssl_profile_by_virtual_server(vserver)[0]
 
             print(";%s;%s;%s;%s;%s;%s" % (
                 vserver,
@@ -156,7 +192,8 @@ class F5CfgParser(object):
         self.config_fd = open(config_filename)
         self.parse()
 
-    def _check_quotes(self, line, open_quote=0):
+    @staticmethod
+    def _check_quotes(line, open_quote=0):
         """Count quote on line and return open quote blocks count
         """
         for char in line:
@@ -208,10 +245,13 @@ class F5CfgParser(object):
         :return: Text field value as :func:`str`
         """
         open_quote = self._check_quotes(text)
+        if open_quote == 0:
+                return text.strip()
+
         for line in self.config_fd:
             open_quote = self._check_quotes(line, open_quote)
             text += line
-            if '"' in line and open_quote == 0:
+            if open_quote == 0:
                 return text.strip()
         raise SyntaxError('unterminated text field')
 

@@ -1,11 +1,28 @@
 # coding: utf-8
+#
+#  F5 BigIP configuration reader (f5reader)
+#
+#  Copyright (C) 2018 Denis Pompilio (jawa) <dpompilio@vente-privee.com>
+#
+#  This file is part of f5reader
+#
+#  This program is free software; you can redistribute it and/or
+#  modify it under the terms of the MIT License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  MIT License for more details.
+#
+#  You should have received a copy of the MIT License along with this
+#  program; if not, see <https://opensource.org/licenses/MIT>.
 
 import re
 
 
 VERSION = "0.1.1"
 
-NODE_PATTERN = r'((?:/([^/]+)/)?([^%:]+)(%[0-9]+)?)(?::([0-9]+))?'
+NODE_PATTERN = r'((?:/?([^/]+)/)?([^%:]+)(%[0-9]+)?)(?::(.+))?'
 NODE_RE = re.compile(NODE_PATTERN)
 
 
@@ -13,7 +30,7 @@ def node_info(node_string):
     """Extract node info from node string
 
     Node string is under the form:
-        [/partition/]addr[%iface][:port]
+        [[/]partition/]addr[%iface][:port]
 
     :arg str node_string: Node string
     :return: Node info as :class:`tuple` (name, partition, address, iface, port)
@@ -148,35 +165,39 @@ class F5Cfg(object):
         :return: Pool members as :class:`list` or None
         """
         members = []
-        for member in self.get_pool(pool_name)['members']:
-            (_, partition, address, _, port) = node_info(member)
-            node = self.get_node(member.split(':')[0])
-            description = node.get('description', '')
-            members.append((partition, address, port, description))
+        for member, data in self.get_pool(pool_name)['members'].items():
+            (node_name, port) = member.split(':')
+            node = self.get_node(node_name)
+            members.append((
+                node.get('partition'),
+                node.get('address'),
+                port,
+                node.get('description'),
+                node.get('state')
+            ))
         return members
 
-    def output_csv(self):
-        """Output virtual servers info as csv
+    def list_virtual_server_chains(self):
+        """Return virtual server chains
         """
-        print("Product name;VIP name;VIP;Port;SSL profile;Pool name;Nodes")
+        vservers = []
         for vserver, data in self.virtual_servers.items():
             (_, partition, vip, _, port) = node_info(data['destination'])
             pool_name = ""
             pool_members = []
-            if 'pool' in data:
+            if data.get('pool', 'none') != 'none':
                 pool_name = data['pool']
                 pool_members = self.get_pool_members(pool_name)
-
-            pool_info = ', '.join(['%s:%s (%s)' % (ent[1], ent[2], ent[3])
-                                   for ent in pool_members])
-
             ssl_profile = self.get_ssl_profile_by_virtual_server(vserver)[0]
-
-            print(";%s;%s;%s;%s;%s;%s" % (
-                vserver,
-                vip, port, ssl_profile,
-                pool_name, pool_info
-            ))
+            vservers.append(dict({
+                'vserver': vserver,
+                'vip': vip,
+                'port': port,
+                'ssl_profile': ssl_profile,
+                'pool_name': pool_name,
+                'nodes': pool_members
+            }))
+        return vservers
 
 
 class F5CfgParser(object):

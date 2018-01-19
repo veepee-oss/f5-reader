@@ -1,11 +1,29 @@
 #! /usr/bin/env python3
 # coding: utf-8
+#
+#  F5 BigIP configuration reader (f5reader)
+#
+#  Copyright (C) 2018 Denis Pompilio (jawa) <dpompilio@vente-privee.com>
+#
+#  This file is part of f5reader
+#
+#  This program is free software; you can redistribute it and/or
+#  modify it under the terms of the MIT License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  MIT License for more details.
+#
+#  You should have received a copy of the MIT License along with this
+#  program; if not, see <https://opensource.org/licenses/MIT>.
 
 
 import argparse
 import f5reader
 
 
+# --- Main ---
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='F5 BigIP configuration reader')
@@ -15,9 +33,6 @@ if __name__ == "__main__":
                         help='show script version')
     parser.add_argument('-c', '--config', dest='cfg_file',
                         help='specify a configuration file to read')
-    parser.add_argument('--csv', dest='csv', action='store_const',
-                        const=True, default=False,
-                        help='output virtual servers info as csv')
 
     args = parser.parse_args()
 
@@ -31,5 +46,6 @@ if __name__ == "__main__":
 
     f5cfg = f5reader.F5Cfg(args.cfg_file)
 
-    if args.csv:
-        f5cfg.output_csv()
+    from pprint import pprint
+    # pprint(f5cfg.cfg)
+    pprint(f5cfg.list_virtual_server_chains())

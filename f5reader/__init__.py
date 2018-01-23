@@ -242,7 +242,16 @@ class F5CfgParser(object):
         """Initialization"""
         self.cfg = {}
 
-        self.config_fd = open(config_filename)
+        # Try to validate utf-8 encoding of configuration file
+        try:
+            encoding = 'utf-8'
+            with open(config_filename, encoding='utf-8') as config_test:
+                config_test.read()
+        except:
+            # fallback to iso8859_15
+            encoding = 'iso8859_15'
+
+        self.config_fd = open(config_filename, encoding=encoding)
         self.parse()
 
     @staticmethod

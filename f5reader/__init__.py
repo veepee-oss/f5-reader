@@ -68,9 +68,6 @@ class F5Cfg(object):
         self.parser = F5CfgParser(config_filename)
         self.cfg = self.parser.cfg
 
-        self.monitors = {}
-        self.rules = {}
-
     @property
     def nodes(self):
         """Direct access to configuration's nodes
@@ -102,6 +99,22 @@ class F5Cfg(object):
         :return: Pools data as :class:`dict`
         """
         return self.cfg.get('ltm', {}).get('pool', {})
+
+    @property
+    def rules(self):
+        """Direct access to configuration's irules
+
+        :return: Rules data as :class:`dict`
+        """
+        return self.cfg.get('ltm', {}).get('rule', {})
+
+    @property
+    def monitors(self):
+        """Direct access to configuration's monitors
+
+        :return: Monitors data as :class:`dict`
+        """
+        return self.cfg.get('ltm', {}).get('monitor', {})
 
     def get_pools_by_node(self, node_name):
         """Get pools data by node name

@@ -18,6 +18,7 @@
 #  program; if not, see <https://opensource.org/licenses/MIT>.
 
 import re
+import socket
 
 
 VERSION = "0.1.1"
@@ -26,16 +27,34 @@ NODE_PATTERN = r'((?:/?([^/]+)/)?([^%:]+)(%[0-9]+)?)(?::(.+))?'
 NODE_RE = re.compile(NODE_PATTERN)
 
 
-def node_info(node_string):
+def resolv_port(service_name, protocol=None):
+    """Get port by service name
+
+    :arg str service_name: Service name
+    :arg str protocol: Protocol (defaults to :obj:`None`
+    :return: Port number as :func:`str` or service_name if unknown
+    """
+    try:
+        return str(socket.getservbyname(service_name, protocol))
+    except OSError:
+        return service_name
+
+
+def node_info(node_str):
     """Extract node info from node string
 
     Node string is under the form:
         [[/]partition/]addr[%iface][:port]
 
-    :arg str node_string: Node string
+    :arg str node_str: Node string
     :return: Node info as :class:`tuple` (name, partition, address, iface, port)
     """
-    return NODE_RE.match(node_string).groups()
+    (name, partition, address, iface, port) = NODE_RE.match(node_str).groups()
+    try:
+        int(port)
+    except ValueError:
+        port = resolv_port(port, 'tcp')
+    return name, partition, address, iface, port
 
 
 class F5Cfg(object):

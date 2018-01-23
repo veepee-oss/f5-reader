@@ -258,8 +258,8 @@ class F5CfgParser(object):
     def _check_quotes(line, open_quote=0):
         """Count quote on line and return open quote blocks count
         """
-        for char in line:
-            if char == '"':
+        for idx, char in enumerate(line):
+            if char == '"' and line[idx-1] != '\\':
                 open_quote = (open_quote + 1) % 2
         return open_quote
 

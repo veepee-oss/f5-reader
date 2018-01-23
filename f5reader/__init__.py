@@ -196,24 +196,36 @@ class F5Cfg(object):
         :arg str pool_name: Pool name
         :return: Pool members as :class:`list` or None
         """
-        members = []
-        for member, data in self.get_pool(pool_name)['members'].items():
-            (node_name, port) = member.split(':')
-            node = self.get_node(node_name)
-            members.append((
-                node.get('partition'),
-                node.get('address'),
-                port,
-                node.get('description'),
-                node.get('state')
-            ))
-        return members
+        try:
+            members = []
+            for member, data in self.get_pool(pool_name)['members'].items():
+
+                (node_name, _, address, _, port) = node_info(member)
+                node = self.get_node(node_name)
+                node['name'] = node_name
+                node['port'] = port
+                # On older version, node has no address field
+                # Then assume that node name is IP[%Iface]
+                if 'address' not in node:
+                    node['address'] = address
+                if 'description' not in node:
+                    node['description'] = ''
+                if 'state' not in node:
+                    node['state'] = node.get('status', 'unknown')
+                members.append(node)
+            return members
+        except AttributeError:
+            # On older version, pool members may be str('none')
+            return []
 
     def list_virtual_server_chains(self):
         """Return virtual server chains
         """
         vservers = []
         for vserver, data in self.virtual_servers.items():
+            vpartition, vname = '', vserver
+            if '/' in vserver:
+                vpartition, vname = vserver.split('/', 1)
             (_, partition, vip, _, port) = node_info(data['destination'])
             pool_name = ""
             pool_members = []
@@ -221,11 +233,21 @@ class F5Cfg(object):
                 pool_name = data['pool']
                 pool_members = self.get_pool_members(pool_name)
             ssl_profile = self.get_ssl_profile_by_virtual_server(vserver)[0]
+            ssl_cert = None
+            if ssl_profile:
+                ssl_cert = self.ssl_profiles[ssl_profile]['cert']
+            rules = None
+            if data['rules'] != 'none':
+                rules = [self.rules.get(rname, rname)
+                         for rname in data['rules']]
             vservers.append(dict({
-                'vserver': vserver,
+                'partition': vpartition,
+                'vserver': vname,
                 'vip': vip,
                 'port': port,
                 'ssl_profile': ssl_profile,
+                'ssl_cert': ssl_cert,
+                'rules': rules,
                 'pool_name': pool_name,
                 'nodes': pool_members
             }))

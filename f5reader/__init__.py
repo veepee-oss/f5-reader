@@ -338,7 +338,12 @@ class F5CfgParser(object):
                     # specific handling of rules text block
                     new_section.update({fields[-1]: self.get_rule_block()})
                 else:
-                    new_section.update({fields[-1]: self.parse_blocks()})
+                    block = self.parse_blocks()
+                    if fields[-1] in new_section \
+                        and block.get('members') == 'none':
+                        # Handle a weird duplicate pools in configuration
+                        continue
+                    new_section.update({fields[-1]: block})
             elif line.endswith('{ }'):
                 fields = line[:-3].split()
                 new_section = self.build_hierarchy(struct, fields[:-1])

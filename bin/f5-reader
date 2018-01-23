@@ -47,5 +47,5 @@ if __name__ == "__main__":
     f5cfg = f5reader.F5Cfg(args.cfg_file)
 
     from pprint import pprint
-    # pprint(f5cfg.cfg)
+    pprint(f5cfg.cfg)
     pprint(f5cfg.list_virtual_server_chains())

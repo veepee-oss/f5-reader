@@ -21,6 +21,64 @@ import json
 import requests
 
 
+JSON_IP2FQDNS = None
+
+
+def get_public_ips(fw_file, vservers):
+    """Get VIPs' public IP from firewall file
+
+    :arg str fw_file: Json file with VIPs' nat rules info
+    :arg list vservers: List of vservers data dicts
+
+    This method will enrich vservers data dicts in-place.
+    Firewall JSON file format::
+
+        {
+          "a.a.a.a": [
+            {
+              "ipInt": "x.x.x.x",
+              [...]
+            },
+            [...]
+          ],
+          "b.b.b.b": [
+            {
+              "ipInt": "y.y.y.y",
+              [...]
+            },
+            [...]
+          ]
+        }
+    """
+    fw_info = json.load(open(fw_file))
+    for vserver in vservers:
+        for pub_ip, rules in fw_info.items():
+            if vserver['vip'] in [rul['ipInt'] for rul in rules]:
+                vserver['pub_ip'] = pub_ip
+
+
+def json_get_fqdn(json_file, ip_addr):
+    """Get IP's fqdns from Json file
+
+    Json file format::
+
+        {
+            'x.x.x.x': ['a.domain.tld', 'b.domain.tld', ...],
+            'y.y.y.y': ['b.domain.tld', 'c.domain.tld', ...],
+            ...
+        }
+
+    :param str json_file: Json file mapping IPs to FQDNs
+    :param str ip_addr: IP address
+    :return: DNS names pointing IP address as :func:`list` or :obj:`None`
+    """
+    global JSON_IP2FQDNS
+    if not JSON_IP2FQDNS:
+        with open(json_file) as jfp:
+            JSON_IP2FQDNS = json.load(jfp)
+    return JSON_IP2FQDNS.get(ip_addr)
+
+
 def pdns_get_fqdn(pdns_api, api_key, ip_addr):
     """Get IP's fqdns from powerdns API
 

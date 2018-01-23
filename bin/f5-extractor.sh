@@ -26,7 +26,18 @@ usage() {
 gather_f5_data() {
     ip="$1"
     shift
-    ssh "$@" "$ip" 'tmsh cd / \; list recursive all-properties'
+    ssh "$@" "$ip" '
+        if [ -d /config/partitions ]; then
+            echo "F5 is using partitions." >&2
+            tmsh cd / \;\
+            modify sys db bigpipe.displayservicenames value false \;\
+            list recursive all-properties
+        else
+            echo "F5 has no partition." >&2
+            tmsh modify sys db bigpipe.displayservicenames value false \;\
+            list all-properties
+        fi
+    '
 }
 
 

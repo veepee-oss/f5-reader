@@ -39,6 +39,17 @@ License
 
 MIT LICENSE *(see LICENSE file)*
 
+Miscellaneous
+-------------
+
+	    ╚⊙ ⊙╝
+	  ╚═(███)═╝
+	 ╚═(███)═╝
+	╚═(███)═╝
+	 ╚═(███)═╝
+	  ╚═(███)═╝
+	   ╚═(███)═╝
+
 
 .. |PythonSupport| image:: https://img.shields.io/badge/python-3.4,%203.5,%203.6-blue.svg
 .. _PythonSupport: https://git.vpgrp.io/core/f5-reader

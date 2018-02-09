@@ -42,13 +42,15 @@ MIT LICENSE *(see LICENSE file)*
 Miscellaneous
 -------------
 
-	    ╚⊙ ⊙╝
-	  ╚═(███)═╝
-	 ╚═(███)═╝
-	╚═(███)═╝
-	 ╚═(███)═╝
-	  ╚═(███)═╝
-	   ╚═(███)═╝
+ ::
+
+        ╚⊙ ⊙╝
+      ╚═(███)═╝
+     ╚═(███)═╝
+    ╚═(███)═╝
+     ╚═(███)═╝
+     ╚═(███)═╝
+      ╚═(███)═╝
 
 
 .. |PythonSupport| image:: https://img.shields.io/badge/python-3.4,%203.5,%203.6-blue.svg
